@@ -1,0 +1,26 @@
+services:
+  hermes:
+    build: .
+    container_name: hermes-agent
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 256
+    tmpfs:
+      - /tmp:size=128m,noexec
+    volumes:
+      - /home/limcheekin/docker/volumes/hermes-agent:/home/hermes/.hermes
+    ports:
+      - "127.0.0.1:8642:8642"
+    env_file:
+      - .env
+    healthcheck:
+      # Port 8642 (CORRECTED from 8644 in the original document)
+      test: [ "CMD", "curl", "-sf", "http://localhost:8642/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
