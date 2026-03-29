@@ -12,7 +12,7 @@ services:
     tmpfs:
       - /tmp:size=128m,noexec
     volumes:
-      - /home/limcheekin/docker/volumes/hermes-agent:/home/hermes/.hermes
+      - /home/limcheekin/docker/volumes/hermes-agent:/opt/data
     ports:
       - "127.0.0.1:8642:8642"
     environment:
