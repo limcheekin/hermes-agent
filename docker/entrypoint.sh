@@ -12,9 +12,9 @@ INSTALL_DIR="/opt/hermes"
 mkdir -p "$HERMES_HOME"/{cron,sessions,logs,hooks,memories,skills}
 
 # .env
-if [ ! -f "$HERMES_HOME/.env" ]; then
-    cp "$INSTALL_DIR/.env.example" "$HERMES_HOME/.env"
-fi
+#if [ ! -f "$HERMES_HOME/.env" ]; then
+#    cp "$INSTALL_DIR/.env.example" "$HERMES_HOME/.env"
+#fi
 
 # config.yaml
 if [ ! -f "$HERMES_HOME/config.yaml" ]; then
