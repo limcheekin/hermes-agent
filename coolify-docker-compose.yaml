@@ -15,8 +15,88 @@ services:
       - /home/limcheekin/docker/volumes/hermes-agent:/home/hermes/.hermes
     ports:
       - "127.0.0.1:8642:8642"
-    env_file:
-      - .env
+    environment:
+      # =============================================================================
+      # LLM PROVIDER (OpenRouter)
+      # =============================================================================
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - LLM_MODEL=${LLM_MODEL}
+
+      # =============================================================================
+      # LLM PROVIDER (z.ai / GLM)
+      # =============================================================================
+      - GLM_API_KEY=
+
+      # =============================================================================
+      # LLM PROVIDER (Kimi / Moonshot)
+      # =============================================================================
+      - KIMI_API_KEY=
+
+      # =============================================================================
+      # LLM PROVIDER (MiniMax)
+      # =============================================================================
+      - MINIMAX_API_KEY=
+      - MINIMAX_CN_API_KEY=
+
+      # =============================================================================
+      # LLM PROVIDER (OpenCode Zen)
+      # =============================================================================
+      - OPENCODE_ZEN_API_KEY=
+
+      # =============================================================================
+      # LLM PROVIDER (OpenCode Go)
+      # =============================================================================
+      - OPENCODE_GO_API_KEY=
+
+      # =============================================================================
+      # LLM PROVIDER (Hugging Face Inference Providers)
+      # =============================================================================
+      - HF_TOKEN=
+
+      # =============================================================================
+      # TOOL API KEYS
+      # =============================================================================
+      - EXA_API_KEY=
+      - PARALLEL_API_KEY=
+      - FIRECRAWL_API_KEY=
+      - FAL_KEY=
+      - HONCHO_API_KEY=
+
+      # =============================================================================
+      # TERMINAL TOOL CONFIGURATION (mini-swe-agent backend)
+      # =============================================================================
+      - TERMINAL_MODAL_IMAGE=nikolaik/python-nodejs:python3.11-nodejs20
+      - TERMINAL_TIMEOUT=60
+      - TERMINAL_LIFETIME_SECONDS=300
+
+      # =============================================================================
+      # BROWSER TOOL CONFIGURATION (agent-browser + Browserbase)
+      # =============================================================================
+      - BROWSERBASE_API_KEY=
+      - BROWSERBASE_PROJECT_ID=
+      - BROWSERBASE_PROXIES=true
+      - BROWSERBASE_ADVANCED_STEALTH=false
+      - BROWSER_SESSION_TIMEOUT=300
+      - BROWSER_INACTIVITY_TIMEOUT=120
+
+      # =============================================================================
+      # VOICE TRANSCRIPTION & OPENAI TTS
+      # =============================================================================
+      - VOICE_TOOLS_OPENAI_KEY=
+
+      # =============================================================================
+      # DEBUG OPTIONS
+      # =============================================================================
+      - WEB_TOOLS_DEBUG=false
+      - VISION_TOOLS_DEBUG=false
+      - MOA_TOOLS_DEBUG=false
+      - IMAGE_TOOLS_DEBUG=false
+
+      # =============================================================================
+      # RL TRAINING (Tinker + Atropos)
+      # =============================================================================
+      - TINKER_API_KEY=
+      - WANDB_API_KEY=
     healthcheck:
       # Port 8642 (CORRECTED from 8644 in the original document)
       test: [ "CMD", "curl", "-sf", "http://localhost:8642/health" ]
