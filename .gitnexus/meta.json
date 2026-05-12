@@ -1,0 +1,14 @@
+{
+  "repoPath": "/home/limcheekin/dev/ws/py/hermes-agent",
+  "lastCommit": "f9c56bb9201f7f5a24b261d0d356ea87acf0518a",
+  "indexedAt": "2026-05-04T14:09:56.203Z",
+  "remoteUrl": "git@github.com:limcheekin/hermes-agent",
+  "stats": {
+    "files": 2768,
+    "nodes": 111865,
+    "edges": 187576,
+    "communities": 2152,
+    "processes": 300,
+    "embeddings": 0
+  }
+}
