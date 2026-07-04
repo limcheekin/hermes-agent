@@ -72,5 +72,6 @@ services:
     environment:
       - HERMES_UID=${HERMES_UID:-10000}
       - HERMES_GID=${HERMES_GID:-10000}
+      - HERMES_DASHBOARD_SESSION_TOKEN =${HERMES_DASHBOARD_SESSION_TOKEN:-}      
     # Localhost-only. For remote access, tunnel via `ssh -L 9119:localhost:9119`.
-    command: ["dashboard", "--host", "127.0.0.1", "--no-open"]
+    command: ["dashboard", "--host", "0.0.0.0", "--port", "9119", "--insecure", "--tui", "--no-open", "--skip-build"]
