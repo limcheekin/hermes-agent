@@ -32,7 +32,10 @@ services:
     image: hermes-agent
     container_name: hermes
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - '${GATEWAY_PORT}:9118'
+    environment:
+      GATEWAY_PORT: '${GATEWAY_PORT:-9118}'
     volumes:
       - ~/.hermes:/opt/data
     environment:
@@ -64,7 +67,10 @@ services:
     image: hermes-agent
     container_name: hermes-dashboard
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - '${DASHBOARD_PORT}:9119'
+    environment:
+      DASHBOARD_PORT: '${DASHBOARD_PORT:-9119}'
     depends_on:
       - gateway
     volumes:
