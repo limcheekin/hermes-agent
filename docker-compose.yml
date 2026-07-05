@@ -80,4 +80,4 @@ services:
       - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${HERMES_DASHBOARD_BASIC_AUTH_SECRET:-long-random-string-at-least-32-chars}
       - DASHBOARD_PORT=${DASHBOARD_PORT:-9119}
     # Localhost-only. For remote access, tunnel via `ssh -L 9119:localhost:9119`.
-    command: ["dashboard", "--host", "0.0.0.0", "--port", "9119", "--no-open", "--skip-build"]
+    command: ["dashboard", "--host", "0.0.0.0", "--port", "9119", "--no-open"]
