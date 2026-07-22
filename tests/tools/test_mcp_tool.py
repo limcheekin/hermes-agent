@@ -4,6 +4,7 @@ All tests use mocks -- no real MCP servers or subprocesses are started.
 """
 
 import asyncio
+import concurrent.futures
 import json
 import threading
 import time
@@ -837,6 +838,23 @@ class TestToolHandler:
 
 
 class TestRunOnMCPLoopInterrupts:
+    @staticmethod
+    def _run_with_future(mcp_mod, future):
+        loop = MagicMock()
+        loop.is_running.return_value = True
+
+        async def _unused_call():
+            return "unused"
+
+        def _schedule(coro, scheduled_loop, **_kwargs):
+            assert scheduled_loop is loop
+            coro.close()
+            return future
+
+        with patch.object(mcp_mod, "_mcp_loop", loop):
+            with patch("agent.async_utils.safe_schedule_threadsafe", side_effect=_schedule):
+                return mcp_mod._run_on_mcp_loop(_unused_call(), timeout=1)
+
     def test_interrupt_cancels_waiting_mcp_call(self):
         import tools.mcp_tool as mcp_mod
         from tools.interrupt import set_interrupt
@@ -921,6 +939,54 @@ class TestRunOnMCPLoopInterrupts:
             loop.close()
             mcp_mod._mcp_loop = old_loop
             mcp_mod._mcp_thread = old_thread
+
+    def test_completed_future_timeout_is_propagated_once(self):
+        import tools.mcp_tool as mcp_mod
+
+        inner_error = TimeoutError("inner MCP timeout")
+
+        class CompletedWithTimeout(concurrent.futures.Future):
+            def __init__(self):
+                super().__init__()
+                self.result_timeouts = []
+                self.set_exception(inner_error)
+
+            def result(self, timeout=None):
+                self.result_timeouts.append(timeout)
+                return super().result(timeout=timeout)
+
+        future = CompletedWithTimeout()
+
+        with pytest.raises(TimeoutError, match="inner MCP timeout") as exc_info:
+            self._run_with_future(mcp_mod, future)
+
+        assert exc_info.value is inner_error
+        assert len(future.result_timeouts) == 2
+        assert future.result_timeouts[0] is not None
+        assert future.result_timeouts[1] is None
+
+    def test_poll_timeout_racing_success_returns_completed_result(self):
+        import tools.mcp_tool as mcp_mod
+
+        class PollThenSuccess(concurrent.futures.Future):
+            def __init__(self):
+                super().__init__()
+                self.result_timeouts = []
+
+            def result(self, timeout=None):
+                self.result_timeouts.append(timeout)
+                if len(self.result_timeouts) == 1:
+                    self.set_result("completed")
+                    raise concurrent.futures.TimeoutError
+
+                return super().result(timeout=timeout)
+
+        future = PollThenSuccess()
+
+        assert self._run_with_future(mcp_mod, future) == "completed"
+        assert len(future.result_timeouts) == 2
+        assert future.result_timeouts[0] is not None
+        assert future.result_timeouts[1] is None
 
 
 # ---------------------------------------------------------------------------
@@ -1452,7 +1518,14 @@ class TestToolsetInjection:
             broken_fixed = True
             call_count = 0
 
-            # Second call: should retry broken, skip good
+            # The failed server is now serving a post-failure backoff
+            # (#50394: prevents a tight re-spawn storm across the frequent
+            # per-worker-session discovery passes). Expire that cooldown to
+            # simulate the retry window having elapsed.
+            import tools.mcp_tool as _mcp_mod
+            _mcp_mod._server_connect_retry_after.pop("broken", None)
+
+            # Next call after the cooldown: should retry broken, skip good
             result2 = discover_mcp_tools()
             assert "mcp__good__ping" in result2
             assert "mcp__broken__ping" in result2
