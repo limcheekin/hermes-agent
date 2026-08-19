@@ -172,10 +172,12 @@ def reconcile_profile_gateways(
             if not entry.is_dir():
                 continue
             # SOUL.md is always seeded by `hermes profile create` (config.yaml
-            # is not — that comes later via `hermes setup`). Use it as the
-            # "real profile" marker so stray dirs (backups, manual mkdir)
+            # is not — that comes later via `hermes setup`), or profile.yaml /
+            # symlinked SOUL.md (even if mount is pending/dangling). Use them as
+            # the "real profile" marker so stray dirs (backups, manual mkdir)
             # aren't picked up.
-            if not (entry / "SOUL.md").exists():
+            soul_path = entry / "SOUL.md"
+            if not (soul_path.exists() or soul_path.is_symlink() or (entry / "profile.yaml").exists()):
                 continue
             # The "default" service name is reserved for the root
             # profile (above) — if a user has somehow created a

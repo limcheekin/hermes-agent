@@ -1,106 +1,40 @@
 services:
-  hermes:
-    build: .
-    container_name: hermes-agent
+  gateway:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes
     restart: unless-stopped
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    pids_limit: 256
-    tmpfs:
-      - /tmp:size=128m,noexec
-    volumes:
-      - /home/limcheekin/docker/volumes/hermes-agent:/opt/data
+    command: ["-p", "default", "gateway", "run"]
     ports:
-      - "127.0.0.1:8642:8642"
+      - "${GATEWAY_PORT:-9118}:9118"
+    volumes:
+      - ${HERMES_DATA_VOLUME:-~/.hermes}:/opt/data
     environment:
-      # =============================================================================
-      # LLM PROVIDER (OpenRouter)
-      # =============================================================================
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - LLM_MODEL=${LLM_MODEL}
+      - HERMES_UID=${HERMES_UID:-10000}
+      - HERMES_GID=${HERMES_GID:-10000}
+      - GATEWAY_PORT=${GATEWAY_PORT:-9118}
 
-      # =============================================================================
-      # LLM PROVIDER (z.ai / GLM)
-      # =============================================================================
-      - GLM_API_KEY=
-
-      # =============================================================================
-      # LLM PROVIDER (Kimi / Moonshot)
-      # =============================================================================
-      - KIMI_API_KEY=
-
-      # =============================================================================
-      # LLM PROVIDER (MiniMax)
-      # =============================================================================
-      - MINIMAX_API_KEY=
-      - MINIMAX_CN_API_KEY=
-
-      # =============================================================================
-      # LLM PROVIDER (OpenCode Zen)
-      # =============================================================================
-      - OPENCODE_ZEN_API_KEY=
-
-      # =============================================================================
-      # LLM PROVIDER (OpenCode Go)
-      # =============================================================================
-      - OPENCODE_GO_API_KEY=
-
-      # =============================================================================
-      # LLM PROVIDER (Hugging Face Inference Providers)
-      # =============================================================================
-      - HF_TOKEN=
-
-      # =============================================================================
-      # TOOL API KEYS
-      # =============================================================================
-      - EXA_API_KEY=
-      - PARALLEL_API_KEY=
-      - FIRECRAWL_API_KEY=
-      - FAL_KEY=
-      - HONCHO_API_KEY=
-
-      # =============================================================================
-      # TERMINAL TOOL CONFIGURATION (mini-swe-agent backend)
-      # =============================================================================
-      - TERMINAL_MODAL_IMAGE=nikolaik/python-nodejs:python3.11-nodejs20
-      - TERMINAL_TIMEOUT=60
-      - TERMINAL_LIFETIME_SECONDS=300
-
-      # =============================================================================
-      # BROWSER TOOL CONFIGURATION (agent-browser + Browserbase)
-      # =============================================================================
-      - BROWSERBASE_API_KEY=
-      - BROWSERBASE_PROJECT_ID=
-      - BROWSERBASE_PROXIES=true
-      - BROWSERBASE_ADVANCED_STEALTH=false
-      - BROWSER_SESSION_TIMEOUT=300
-      - BROWSER_INACTIVITY_TIMEOUT=120
-
-      # =============================================================================
-      # VOICE TRANSCRIPTION & OPENAI TTS
-      # =============================================================================
-      - VOICE_TOOLS_OPENAI_KEY=
-
-      # =============================================================================
-      # DEBUG OPTIONS
-      # =============================================================================
-      - WEB_TOOLS_DEBUG=false
-      - VISION_TOOLS_DEBUG=false
-      - MOA_TOOLS_DEBUG=false
-      - IMAGE_TOOLS_DEBUG=false
-
-      # =============================================================================
-      # RL TRAINING (Tinker + Atropos)
-      # =============================================================================
-      - TINKER_API_KEY=
-      - WANDB_API_KEY=
+  dashboard:
+    image: nousresearch/hermes-agent:latest
+    container_name: hermes-dashboard
+    restart: unless-stopped
+    command: ["dashboard", "--host", "0.0.0.0", "--port", "9119", "--no-open"]
+    ports:
+      - "${DASHBOARD_PORT:-9119}:9119"
+    depends_on:
+      - gateway
+    volumes:
+      - ${HERMES_DATA_VOLUME:-~/.hermes}:/opt/data
+    environment:
+      - HERMES_UID=${HERMES_UID:-10000}
+      - HERMES_GID=${HERMES_GID:-10000}
+      - HERMES_DASHBOARD_BASIC_AUTH_USERNAME=${HERMES_DASHBOARD_BASIC_AUTH_USERNAME:-admin}
+      - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${HERMES_DASHBOARD_BASIC_AUTH_PASSWORD:-your-secure-password}
+      - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${HERMES_DASHBOARD_BASIC_AUTH_SECRET:-long-random-string-at-least-32-chars}
+      - DASHBOARD_PORT=${DASHBOARD_PORT:-9119}
     healthcheck:
-      # Port 8642 (CORRECTED from 8644 in the original document)
-      test: [ "CMD", "curl", "-sf", "http://localhost:8642/health" ]
+      test: ["CMD", "curl", "-sf", "http://localhost:9119/"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 20s
+

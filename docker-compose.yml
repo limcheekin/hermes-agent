@@ -60,7 +60,7 @@ services:
       # - GOOGLE_CHAT_SUBSCRIPTION_NAME=${GOOGLE_CHAT_SUBSCRIPTION_NAME}
       # - GOOGLE_CHAT_SERVICE_ACCOUNT_JSON=${GOOGLE_CHAT_SERVICE_ACCOUNT_JSON}
       # - GOOGLE_CHAT_ALLOWED_USERS=${GOOGLE_CHAT_ALLOWED_USERS}
-    command: ["gateway", "run"]
+    command: ["-p", "default", "gateway", "run"]
 
   dashboard:
     image: hermes-agent
@@ -79,5 +79,11 @@ services:
       - HERMES_DASHBOARD_BASIC_AUTH_PASSWORD=${HERMES_DASHBOARD_BASIC_AUTH_PASSWORD:-your-secure-password}
       - HERMES_DASHBOARD_BASIC_AUTH_SECRET=${HERMES_DASHBOARD_BASIC_AUTH_SECRET:-long-random-string-at-least-32-chars}
       - DASHBOARD_PORT=${DASHBOARD_PORT:-9119}
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9119/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     # Localhost-only. For remote access, tunnel via `ssh -L 9119:localhost:9119`.
     command: ["dashboard", "--host", "0.0.0.0", "--port", "9119", "--no-open"]

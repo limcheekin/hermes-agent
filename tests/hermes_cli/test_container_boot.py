@@ -146,6 +146,49 @@ def test_registered_profile_has_finish_script(tmp_path: Path) -> None:
     assert "125" in text
 
 
+def test_profile_with_dangling_soul_symlink_is_registered(tmp_path: Path) -> None:
+    """A profile whose SOUL.md is a symlink to an unmounted/missing file
+    (e.g., /srv/nik/nik-spec/spec.md) must still be registered."""
+    scandir = tmp_path / "run-service"
+    scandir.mkdir()
+    p = tmp_path / "profiles" / "nik"
+    p.mkdir(parents=True)
+    # Create dangling symlink
+    (p / "SOUL.md").symlink_to("/nonexistent/mount/spec.md")
+    (p / "gateway_state.json").write_text(json.dumps({"gateway_state": "running"}))
+
+    actions = reconcile_profile_gateways(
+        hermes_home=tmp_path, scandir=scandir, dry_run=False,
+    )
+
+    assert _named_actions(actions) == [ReconcileAction(
+        profile="nik", prior_state="running", action="started",
+    )]
+    assert (scandir / "gateway-nik" / "run").exists()
+
+
+def test_profile_with_profile_yaml_only_is_registered(tmp_path: Path) -> None:
+    """A profile where SOUL.md was removed/quarantined but profile.yaml
+    exists must still be registered."""
+    scandir = tmp_path / "run-service"
+    scandir.mkdir()
+    p = tmp_path / "profiles" / "custom"
+    p.mkdir(parents=True)
+    (p / "profile.yaml").write_text("name: custom\n")
+    (p / "gateway_state.json").write_text(json.dumps({"gateway_state": "stopped"}))
+
+    actions = reconcile_profile_gateways(
+        hermes_home=tmp_path, scandir=scandir, dry_run=False,
+    )
+
+    assert _named_actions(actions) == [ReconcileAction(
+        profile="custom", prior_state="stopped", action="registered",
+    )]
+    assert (scandir / "gateway-custom" / "run").exists()
+    assert (scandir / "gateway-custom" / "down").exists()
+
+
+
 
 
 
