@@ -82,10 +82,17 @@ if [ $# -eq 0 ]; then
     drop hermes
 fi
 
-if command -v "$1" >/dev/null 2>&1; then
-    # Bare executable — pass through directly.
-    drop "$@"
-fi
-
-# Hermes subcommand pass-through.
-drop hermes "$@"
+case "$1" in
+    -*)
+        # Flags/options (e.g. -p default gateway run, --version) -> pass to hermes CLI
+        drop hermes "$@"
+        ;;
+    *)
+        if command -v -- "$1" >/dev/null 2>&1; then
+            # Bare executable — pass through directly.
+            drop "$@"
+        fi
+        # Hermes subcommand pass-through.
+        drop hermes "$@"
+        ;;
+esac
