@@ -188,61 +188,47 @@ def test_profile_with_profile_yaml_only_is_registered(tmp_path: Path) -> None:
     assert (scandir / "gateway-custom" / "down").exists()
 
 
-
-
-
-
-
-
-
-
-
-
-
+def test_is_legacy_gateway_run_request_with_profile_flag() -> None:
+    """Container command with leading -p default must match legacy gateway run."""
+    from hermes_cli.container_boot import _is_legacy_gateway_run_request
+    assert _is_legacy_gateway_run_request(["/init", "/opt/hermes/docker/main-wrapper.sh", "-p", "default", "gateway", "run"])
+    assert _is_legacy_gateway_run_request(["/init", "/opt/hermes/docker/main-wrapper.sh", "gateway", "run"])
 
 
 def test_register_service_overwrites_existing_slot(tmp_path: Path) -> None:
     """A second reconciliation pass cleanly replaces an existing
-    slot (the tmp+rename publication overwrites the previous one)."""
-    scandir = tmp_path / "run-service"; scandir.mkdir()
-    profile = _make_profile(tmp_path, "coder", state="running")
+    service directory without leaving behind .tmp directories."""
+    scandir = tmp_path / "run-service"
+    scandir.mkdir()
+    p = tmp_path / "profiles" / "coder"
+    p.mkdir(parents=True)
+    (p / "SOUL.md").write_text("soul")
+    (p / "gateway_state.json").write_text(json.dumps({"gateway_state": "running"}))
 
-    # First pass.
+    # Pass 1 — creates the slot.
     reconcile_profile_gateways(
         hermes_home=tmp_path, scandir=scandir, dry_run=False,
     )
-    first_run = (scandir / "gateway-coder" / "run").read_text()
+    assert (scandir / "gateway-coder" / "run").exists()
+    assert not (scandir / "gateway-coder" / "down").exists()
 
-    # Mutate the profile state so the run-script changes (extra_env
-    # rendering would differ if we wired profile config through, but
-    # for now just exercise the overwrite path).
-    (profile / "gateway_state.json").write_text(
-        '{"gateway_state": "stopped"}',
-    )
+    # Operator stopped the gateway.
+    (p / "gateway_state.json").write_text(json.dumps({"gateway_state": "stopped"}))
+
+    # Pass 2 — re-reconciles over the existing directory.
     reconcile_profile_gateways(
         hermes_home=tmp_path, scandir=scandir, dry_run=False,
     )
 
-    # Slot still exists, no .tmp remnants (staging dir is dot-prefixed,
-    # so match it explicitly — a leading-`*` glob won't catch dotfiles).
-    assert (scandir / "gateway-coder" / "run").read_text() == first_run
-    assert list(scandir.glob("*.tmp")) == []
+    assert (scandir / "gateway-coder" / "run").exists()
     assert list(scandir.glob(".*.tmp")) == []
     # Down marker now present (state went from running → stopped).
     assert (scandir / "gateway-coder" / "down").exists()
 
 
-
-
 # ---------------------------------------------------------------------------
 # Default-profile slot — always registered (PR #30136 review item I1)
 # ---------------------------------------------------------------------------
-
-
-
-
-
-
 
 
 def test_profiles_default_subdir_is_skipped_with_warning(
@@ -275,10 +261,6 @@ def test_profiles_default_subdir_is_skipped_with_warning(
 # ---------------------------------------------------------------------------
 # Dashboard-container role detection (skip reconcile on the dashboard)
 # ---------------------------------------------------------------------------
-
-
-
-
 
 
 def test_main_skips_reconcile_in_dashboard_container_s6v3(

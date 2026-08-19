@@ -92,6 +92,19 @@ class ReconcileAction:
     prior_exit: str = "unknown"
 
 
+def _is_valid_profile_dir(entry: Path) -> bool:
+    """Return True if entry represents a valid profile directory.
+
+    SOUL.md is always seeded by `hermes profile create` (config.yaml
+    is not — that comes later via `hermes setup`), or profile.yaml /
+    symlinked SOUL.md (even if mount is pending/dangling). Use them as
+    the "real profile" marker so stray dirs (backups, manual mkdir)
+    aren't picked up.
+    """
+    soul_path = entry / "SOUL.md"
+    return soul_path.exists() or soul_path.is_symlink() or (entry / "profile.yaml").exists()
+
+
 def reconcile_profile_gateways(
     *,
     hermes_home: Path,
@@ -171,13 +184,7 @@ def reconcile_profile_gateways(
         for entry in sorted(profiles_root.iterdir()):
             if not entry.is_dir():
                 continue
-            # SOUL.md is always seeded by `hermes profile create` (config.yaml
-            # is not — that comes later via `hermes setup`), or profile.yaml /
-            # symlinked SOUL.md (even if mount is pending/dangling). Use them as
-            # the "real profile" marker so stray dirs (backups, manual mkdir)
-            # aren't picked up.
-            soul_path = entry / "SOUL.md"
-            if not (soul_path.exists() or soul_path.is_symlink() or (entry / "profile.yaml").exists()):
+            if not _is_valid_profile_dir(entry):
                 continue
             # The "default" service name is reserved for the root
             # profile (above) — if a user has somehow created a
@@ -341,6 +348,12 @@ def _strip_container_argv_prefix(argv: Sequence[str]) -> list[str]:
     # The wrapper re-execs `hermes <subcommand>`; peel an explicit hermes.
     if args and Path(args[0]).name == "hermes":
         args = args[1:]
+
+    # Peel leading profile flags (-p <name>, --profile <name>, or -p=<name>)
+    if args and (args[0].startswith("-p=") or args[0].startswith("--profile=")):
+        args = args[1:]
+    elif len(args) >= 2 and args[0] in ("-p", "--profile"):
+        args = args[2:]
     return args
 
 
